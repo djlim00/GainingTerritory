@@ -58,5 +58,32 @@ class MACHINE():
             return True
         else:
             return False    
+        
+    def check_endgame(self):
+        remain_to_draw = [[point1, point2] for (point1, point2) in list(combinations(self.whole_points, 2)) if self.check_availability(self.turn, [point1, point2])]
+        return False if remain_to_draw else True
+
+    def max_move(self):
+        available = [[point1, point2] for (point1, point2) in list(combinations(self.whole_points, 2)) if self.check_availability([point1, point2])]
+        if self.check_endgame():
+            return self.score[1] # 게임 종료 시 Machine score 값 리턴
+        else:
+            best_move=random.choice(available)
+            for l in available:
+                move=self.min_move()
+                self.drawn_lines.append(move)
+                self.check_triangle(move)
+
+        return best_move
+        
+    def min_move(self):
+        available = [[point1, point2] for (point1, point2) in list(combinations(self.whole_points, 2)) if self.check_availability([point1, point2])]
+        if self.check_endgame():
+            return self.score[1] # 게임 종료 시 Machine score 값 리턴
+        '''else:
+            
+            for l in available:
+                self.max_move()'''
+
 
     
