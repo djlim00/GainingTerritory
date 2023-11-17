@@ -1,6 +1,7 @@
 import random
-from itertools import combinations
-from shapely.geometry import LineString, Point
+from itertools import combinations,chain,product
+from shapely.geometry import LineString, Point,Polygon
+
 
 class MACHINE():
     """
@@ -24,9 +25,11 @@ class MACHINE():
         self.location = []
         self.triangles = [] # [(a, b), (c, d), (e, f)]
 
+        self.cur_lines=len(self.drawn_lines)
+        self.cur_triangles=len(self.triangles)
+
     def find_best_selection(self):
-        available = [[point1, point2] for (point1, point2) in list(combinations(self.whole_points, 2)) if self.check_availability([point1, point2])]
-        return random.choice(available)
+        return self.max_move()
     
     def check_availability(self, line):
         line_string = LineString(line)
@@ -62,19 +65,72 @@ class MACHINE():
     def check_endgame(self):
         remain_to_draw = [[point1, point2] for (point1, point2) in list(combinations(self.whole_points, 2)) if self.check_availability(self.turn, [point1, point2])]
         return False if remain_to_draw else True
+    
+    def check_triangle(self, line):
+        self.get_score = False
 
-    def max_move(self):
-        available = [[point1, point2] for (point1, point2) in list(combinations(self.whole_points, 2)) if self.check_availability([point1, point2])]
+        point1 = line[0]
+        point2 = line[1]
+
+        point1_connected = []
+        point2_connected = []
+
+        for l in self.drawn_lines:
+            if l==line: # 자기 자신 제외
+                continue
+            if point1 in l:
+                point1_connected.append(l)
+            if point2 in l:
+                point2_connected.append(l)
+
+        if point1_connected and point2_connected: # 최소한 2점 모두 다른 선분과 연결되어 있어야 함
+            for line1, line2 in product(point1_connected, point2_connected):
+                
+                # Check if it is a triangle & Skip the triangle has occupied
+                triangle = self.organize_points(list(set(chain(*[line, line1, line2]))))
+                if len(triangle) != 3 or triangle in self.triangles:
+                    continue
+
+                empty = True
+                for point in self.whole_points:
+                    if point in triangle:
+                        continue
+                    if bool(Polygon(triangle).intersection(Point(point))):
+                        empty = False
+
+                if empty:
+                    self.triangles.append(triangle)
+                    self.get_score = True
+        return self.get_score
+
+    def max_move(self):   # available = 연결가능한 모든 점 조합 리스트
+        available = [[point1, point2] for (point1, point2) in list(combinations(self.whole_points, 2)) if self.check_availability([point1, point2])] 
+
         if self.check_endgame():
+            turn=True # True=Machine, False=User
+            for i in range(self.cur_lines+1,len(self.drawn_lines)+1):
+                if self.check_triangle(self.drawn_lines[i]) and turn:
+                    self.score[1]+=1
+                    turn=False
+                else:
+                    turn=True
             return self.score[1] # 게임 종료 시 Machine score 값 리턴
+        
         else:
-            best_move=random.choice(available)
-            for l in available:
-                move=self.min_move()
-                self.drawn_lines.append(move)
-                self.check_triangle(move)
+            best_score=0
+            best_move=[]
+            for next_move in available:
+                self.drawn_lines.append(next_move)
+                node_score=self.min_move()
 
-        return best_move
+                if(node_score>best_score):
+                    best_score=node_score
+                    best_move=self.drawn_lines[-1]
+
+                self.drawn_lines.pop()
+            return best_move
+    
+
         
     def min_move(self):
         available = [[point1, point2] for (point1, point2) in list(combinations(self.whole_points, 2)) if self.check_availability([point1, point2])]
