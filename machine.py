@@ -1,3 +1,4 @@
+from os import system
 import random
 from itertools import combinations,chain,product
 from shapely.geometry import LineString, Point,Polygon
@@ -35,6 +36,7 @@ class MACHINE():
     def check_availability(self, line):
         line_string = LineString(line)
 
+
         # Must be one of the whole points
         condition1 = (line[0] in self.whole_points) and (line[1] in self.whole_points)
         
@@ -55,7 +57,7 @@ class MACHINE():
             elif bool(line_string.intersection(LineString(l))):
                 condition3 = False
 
-        # Must be a new line
+        # Must be a new lineturn
         condition4 = (line not in self.drawn_lines)
 
         if condition1 and condition2 and condition3 and condition4:
@@ -65,7 +67,9 @@ class MACHINE():
         
     def check_endgame(self):
         ''' 게임 종료 확인 '''
-    
+        remain_to_draw = [[point1, point2] for (point1, point2) in list(combinations(self.whole_points, 2)) if self.check_availability([point1, point2])]
+        return False if remain_to_draw else True
+
     def check_triangle(self, line):
         self.get_score = False
 
