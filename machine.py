@@ -24,13 +24,10 @@ class MACHINE():
         self.whole_points = []
         self.location = []
         self.triangles = [] # [(a, b), (c, d), (e, f)]
-
-        self.cur_lines=len(self.drawn_lines)
-        self.cur_triangles=len(self.triangles)
+        self.tricheck = TRICHECK()
 
     def find_best_selection(self):
-        (a, b)=self.max_move()
-        return b
+        ''''''
     
     def check_availability(self, line):
         line_string = LineString(line)
@@ -61,103 +58,94 @@ class MACHINE():
         if condition1 and condition2 and condition3 and condition4:
             return True
         else:
-            return False    
-        
+            return False
+    
     def check_endgame(self):
         ''' 게임 종료 확인 '''
-    
-    def check_triangle(self, line):
-        self.get_score = False
 
-        point1 = line[0]
-        point2 = line[1]
+    def max_move(self,line_apnd_list):   # available = 연결가능한 모든 점 조합 리스트
+        available = [[point1, point2] for (point1, point2) in list(combinations(self.whole_points, 2)) if self.check_availability([point1, point2])] 
 
-        point1_connected = []
-        point2_connected = []
+        if self.check_endgame(): # 종료 판단이 되었을 때 추가된 라인에 대해 점수 계산
+            self.tricheck.score = self.score
+            self.tricheck.drawn_lines = self.drawn_lines
+            self.tricheck.whole_points = self.whole_points
+            self.tricheck.location = self.location
+            self.tricheck.triangles = self.triangles
 
-        for l in self.drawn_lines:
-            if l==line: # 자기 자신 제외
-                continue
-            if point1 in l:
-                point1_connected.append(l)
-            if point2 in l:
-                point2_connected.append(l)
-
-        if point1_connected and point2_connected: # 최소한 2점 모두 다른 선분과 연결되어 있어야 함
-            for line1, line2 in product(point1_connected, point2_connected):
+            return (self.tricheck.check_triangle(line_apnd_list),line_apnd_list)
                 
-                # Check if it is a triangle & Skip the triangle has occupied
-                triangle = self.organize_points(list(set(chain(*[line, line1, line2]))))
-                if len(triangle) != 3 or triangle in self.triangles:
+        
+        else:  # 종료가 아닐때
+            best_score=0
+            best_move=[]
+
+            for next_move in available:   # 모든 가능한 라인에 대해
+                line_apnd_list.append(next_move)
+                node_score=self.min_move(line_apnd_list)  # min_move 호출
+
+                if(node_score>best_score):
+                    best_score=node_score
+                    best_move=line_apnd_list
+
+                line_apnd_list.pop()
+
+            return (best_score,best_move)
+        
+    
+class TRICHECK():
+    def __init__(self, score=[0, 0], drawn_lines=[], whole_lines=[], whole_points=[], location=[]):
+        self.id = "TRICHECK"
+        self.score = [0, 0] # USER, MACHINE
+        self.drawn_lines = [] # Drawn Lines
+        self.board_size = 7 # 7 x 7 Matrix
+        self.num_dots = 0
+        self.whole_points = []
+        self.location = []
+        self.triangles = [] # [(a, b), (c, d), (e, f)]
+
+    def check_triangle(self, line_apended):
+
+        turn=1 #user=0 machine=1
+        for line in line_apended:
+            point1 = line[0]
+            point2 = line[1]
+
+            point1_connected = []
+            point2_connected = []
+
+            for l in self.drawn_lines:
+                if l==line: # 자기 자신 제외
                     continue
+                if point1 in l:
+                    point1_connected.append(l)
+                if point2 in l:
+                    point2_connected.append(l)
 
-                empty = True
-                for point in self.whole_points:
-                    if point in triangle:
+            if point1_connected and point2_connected: # 최소한 2점 모두 다른 선분과 연결되어 있어야 함
+                for line1, line2 in product(point1_connected, point2_connected):
+                    
+                    # Check if it is a triangle & Skip the triangle has occupied
+                    triangle = self.organize_points(list(set(chain(*[line, line1, line2]))))
+                    if len(triangle) != 3 or triangle in self.triangles:
                         continue
-                    if bool(Polygon(triangle).intersection(Point(point))):
-                        empty = False
 
-                if empty:
-                    self.triangles.append(triangle)
-                    self.get_score = True
-        return self.get_score
+                    empty = True
+                    for point in self.whole_points:
+                        if point in triangle:
+                            continue
+                        if bool(Polygon(triangle).intersection(Point(point))):
+                            empty = False
 
-    def max_move(self):   # available = 연결가능한 모든 점 조합 리스트
-        available = [[point1, point2] for (point1, point2) in list(combinations(self.whole_points, 2)) if self.check_availability([point1, point2])] 
+                    if empty:
+                        self.triangles.append(triangle)
+                        self.score[turn]+=1
 
-        if self.check_endgame():
-            turn=True # True = Machine, False=User
-            for i in range(self.cur_lines+1,len(self.drawn_lines)+1):
-                if self.check_triangle(self.drawn_lines[i]) and turn:
-                    self.score[1]+=1
-                    turn=False
-                else:
-                    turn=True
-            return (self.score[1] , self.self.drawn_lines[self.cur_lines+1]) # 게임 종료 시 Machine score 값 리턴
-        
-        else:
-            best_score=0
-            best_move=[]
-            for next_move in available:
-                self.drawn_lines.append(next_move)
-                node_score=self.min_move()
+            if turn: turn=0  #turn change
+            else: turn=1
 
-                if(node_score>best_score):
-                    best_score=node_score
-                    best_move=self.drawn_lines[-1]
+        return self.score[1] #machine score return
 
-                self.drawn_lines.pop()
-            return (self.score[1] , best_move)
-    
-
-        
-    def min_move(self):
-        available = [[point1, point2] for (point1, point2) in list(combinations(self.whole_points, 2)) if self.check_availability([point1, point2])] 
-
-        if self.check_endgame():
-            turn=False # True = Machine, False=User
-            for i in range(self.cur_lines+1,len(self.drawn_lines)+1):
-                if self.check_triangle(self.drawn_lines[i]) and turn:
-                    self.score[1]+=1
-                    turn=True
-                else:
-                    turn=False
-            return (self.score[1] , self.self.drawn_lines[self.cur_lines+1]) # 게임 종료 시 Machine score 값 리턴
-        
-        else:
-            best_score=0
-            best_move=[]
-            for next_move in available:
-                self.drawn_lines.append(next_move)
-                node_score=self.max_move()
-
-                if(node_score>best_score):
-                    best_score=node_score
-                    best_move=self.drawn_lines[-1]
-
-                self.drawn_lines.pop()
-            return (self.score[1] , best_move)
-
-
-    
+    def organize_points(self, point_list):
+        point_list.sort(key=lambda x: (x[0], x[1]))
+        return point_list
