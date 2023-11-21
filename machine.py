@@ -73,6 +73,7 @@ class MACHINE():
         available = [[point1, point2] for (point1, point2) in list(combinations(self.whole_points, 2)) if self.check_availability([point1, point2])] 
 
         if self.check_endgame(): # 종료 판단이 되었을 때 추가된 라인에 대해 점수 계산
+
             self.tricheck.score = self.score
             self.tricheck.drawn_lines = self.drawn_lines
             self.tricheck.whole_points = self.whole_points
@@ -86,11 +87,15 @@ class MACHINE():
             best_score=0
             best_move=[]
 
-            print("max_move/////",available)
+            print("max_move\n",available)
+            print(line_apnd_list)
 
             for next_move in available:   # 모든 가능한 라인에 대해
+                if next_move in line_apnd_list:
+                    continue
+
                 line_apnd_list.append(next_move)
-                node_score=self.min_move(line_apnd_list)  # min_move 호출
+                (node_score,k1)=self.min_move(line_apnd_list)  # min_move 호출
 
                 if(node_score>best_score):
                     best_score=node_score
@@ -117,11 +122,15 @@ class MACHINE():
             worst_score=999
             worst_move=[]
 
-            print("min_move/////",available)
+            print("min_move\n",available)
+            print(line_apnd_list)
 
             for next_move in available:   # 모든 가능한 라인에 대해
+                if next_move in line_apnd_list:
+                    continue
+
                 line_apnd_list.append(next_move)
-                node_score=self.max_move(line_apnd_list)  # max_move 호출
+                (node_score,k2) = self.max_move(line_apnd_list)  # max_move 호출
 
                 if(node_score<worst_score):
                     worst_score=node_score
