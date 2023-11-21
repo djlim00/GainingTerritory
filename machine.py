@@ -64,15 +64,18 @@ class MACHINE():
         else:
             return False
     
-    def check_endgame(self):
-        remain_to_draw = [[point1, point2] for (point1, point2) in list(combinations(self.whole_points, 2)) if self.check_availability([point1, point2])]
-        return False if remain_to_draw else True
+    def are_lists_equal(list1, list2):
+        set1 = set(list1)
+        set2 = set(list2)
+        return set1 == set2
 
 
     def max_move(self,line_apnd_list):   # available = 연결가능한 모든 점 조합 리스트
         available = [[point1, point2] for (point1, point2) in list(combinations(self.whole_points, 2)) if self.check_availability([point1, point2])] 
 
-        if self.check_endgame(): # 종료 판단이 되었을 때 추가된 라인에 대해 점수 계산
+        if self.are_lists_equal: 
+
+            line_apnd_list# 종료 판단이 되었을 때 추가된 라인에 대해 점수 계산
 
             self.tricheck.score = self.score
             self.tricheck.drawn_lines = self.drawn_lines
