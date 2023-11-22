@@ -25,12 +25,10 @@ class MACHINE():
         self.whole_points = []
         self.location = []
         self.triangles = [] # [(a, b), (c, d), (e, f)]
-        self.tricheck = TRICHECK()
 
     def find_best_selection(self):
-        line_apnd_list=[]
-        a,b=self.max_move(line_apnd_list)
-        return b
+        self.max_move()
+        return 
     
     def check_availability(self, line):
         line_string = LineString(line)
@@ -64,134 +62,119 @@ class MACHINE():
         else:
             return False
     
-    def check_endgame(self):
-        remain_to_draw = [[point1, point2] for (point1, point2) in list(combinations(self.whole_points, 2)) if self.check_availability([point1, point2])]
+    def check_endgame(self,line_apnd_list):
+        '''remain_to_draw = [[point1, point2] for (point1, point2) in list(combinations(self.whole_points, 2)) if self.check_availability([point1, point2])]
         return False if remain_to_draw else True
 
-
-    def max_move(self,line_apnd_list):   # available = 연결가능한 모든 점 조합 리스트
         available = [[point1, point2] for (point1, point2) in list(combinations(self.whole_points, 2)) if self.check_availability([point1, point2])] 
 
-        if self.check_endgame(): # 종료 판단이 되었을 때 추가된 라인에 대해 점수 계산
 
-            self.tricheck.score = self.score
-            self.tricheck.drawn_lines = self.drawn_lines
-            self.tricheck.whole_points = self.whole_points
-            self.tricheck.location = self.location
-            self.tricheck.triangles = self.triangles
+        for next_move in available:   # 모든 가능한 라인에 대해
+            if next_move in line_apnd_list:
+                continue
+            else:
+                return False
 
-            return (self.tricheck.check_triangle(line_apnd_list),line_apnd_list)
+        return True'''
+
+
+
+    def max_move(self):   # available = 연결가능한 모든 점 조합 리스트
+        available = [[point1, point2] for (point1, point2) in list(combinations(self.whole_points, 2)) if self.check_availability([point1, point2])] 
+
+        if self.check_endgame():
+            return ()
                 
         
         else:  # 종료가 아닐때
             best_score=0
             best_move=[]
 
-            print("max_move\n",available)
-            print(line_apnd_list)
+            #print("max_move\n",available)
 
             for next_move in available:   # 모든 가능한 라인에 대해
-                if next_move in line_apnd_list:
-                    continue
+                get_score=self.check_triangle(next_move)
+                if get_score>0:
+                    self.score[1]+=get_score
+                self.drawn_lines.append(next_move)
 
-                line_apnd_list.append(next_move)
-                (node_score,k1)=self.min_move(line_apnd_list)  # min_move 호출
+                self.min_move() #min_move 호출
 
-                if(node_score>best_score):
-                    best_score=node_score
-                    best_move=line_apnd_list
+                if get_score>0:   # 삼각형이 추가되었다면 pop
+                    self.triangles.pop()
+                    self.score[1]-=get_score
+                self.drawn_lines.pop()
 
-                line_apnd_list.pop()
-
-            return (best_score,best_move)
+            return ()
         
-    def min_move(self,line_apnd_list):   # available = 연결가능한 모든 점 조합 리스트
+    def min_move(self):   # available = 연결가능한 모든 점 조합 리스트
         available = [[point1, point2] for (point1, point2) in list(combinations(self.whole_points, 2)) if self.check_availability([point1, point2])] 
 
-        if self.check_endgame(): # 종료 판단이 되었을 때 추가된 라인에 대해 점수 계산
-            self.tricheck.score = self.score
-            self.tricheck.drawn_lines = self.drawn_lines
-            self.tricheck.whole_points = self.whole_points
-            self.tricheck.location = self.location
-            self.tricheck.triangles = self.triangles
-
-            return (self.tricheck.check_triangle(line_apnd_list),line_apnd_list)
+        if self.check_endgame():
+            return ()
                 
         
         else:  # 종료가 아닐때
             worst_score=999
             worst_move=[]
 
-            print("min_move\n",available)
-            print(line_apnd_list)
-
+            #print("min_move\n",available)
+            
             for next_move in available:   # 모든 가능한 라인에 대해
-                if next_move in line_apnd_list:
-                    continue
+                get_score=self.check_triangle(next_move)
+                if get_score>0:
+                    self.score[0]+=get_score
+                self.drawn_lines.append(next_move)
 
-                line_apnd_list.append(next_move)
-                (node_score,k2) = self.max_move(line_apnd_list)  # max_move 호출
+                self.max_move() #max_move 호출
 
-                if(node_score<worst_score):
-                    worst_score=node_score
-                    worst_move=line_apnd_list
+                if get_score>0:   # 삼각형이 추가되었다면 pop
+                    self.triangles.pop()
+                    self.score[0]-=get_score
 
-                line_apnd_list.pop()
+                self.drawn_lines.pop()
 
-            return (worst_score,worst_move)
+            return ()
         
-class TRICHECK():
-    def __init__(self, score=[0, 0], drawn_lines=[], whole_lines=[], whole_points=[], location=[]):
-        self.id = "TRICHECK"
-        self.score = [0, 0] # USER, MACHINE
-        self.drawn_lines = [] # Drawn Lines
-        self.board_size = 7 # 7 x 7 Matrix
-        self.num_dots = 0
-        self.whole_points = []
-        self.location = []
-        self.triangles = [] # [(a, b), (c, d), (e, f)]
 
-    def check_triangle(self, line_apended):
+    def check_triangle(self, line):
 
-        turn=1 #user=0 machine=1
-        for line in line_apended:
-            point1 = line[0]
-            point2 = line[1]
+        point1 = line[0]
+        point2 = line[1]
 
-            point1_connected = []
-            point2_connected = []
+        point1_connected = []
+        point2_connected = []
 
-            for l in self.drawn_lines:
-                if l==line: # 자기 자신 제외
+        for l in self.drawn_lines:
+            if l==line: # 자기 자신 제외
+                continue
+            if point1 in l:
+                point1_connected.append(l)
+            if point2 in l:
+                point2_connected.append(l)
+
+        if point1_connected and point2_connected: # 최소한 2점 모두 다른 선분과 연결되어 있어야 함
+            for line1, line2 in product(point1_connected, point2_connected):
+                
+                # Check if it is a triangle & Skip the triangle has occupied
+                triangle = self.organize_points(list(set(chain(*[line, line1, line2]))))
+                if len(triangle) != 3 or triangle in self.triangles:
                     continue
-                if point1 in l:
-                    point1_connected.append(l)
-                if point2 in l:
-                    point2_connected.append(l)
 
-            if point1_connected and point2_connected: # 최소한 2점 모두 다른 선분과 연결되어 있어야 함
-                for line1, line2 in product(point1_connected, point2_connected):
-                    
-                    # Check if it is a triangle & Skip the triangle has occupied
-                    triangle = self.organize_points(list(set(chain(*[line, line1, line2]))))
-                    if len(triangle) != 3 or triangle in self.triangles:
+                empty = True
+                for point in self.whole_points:
+                    if point in triangle:
                         continue
+                    if bool(Polygon(triangle).intersection(Point(point))):
+                        empty = False
 
-                    empty = True
-                    for point in self.whole_points:
-                        if point in triangle:
-                            continue
-                        if bool(Polygon(triangle).intersection(Point(point))):
-                            empty = False
+                tri_count=0
+                if empty:
+                    self.triangles.append(triangle)
+                    tri_count+=1
+                
+        return tri_count
 
-                    if empty:
-                        self.triangles.append(triangle)
-                        self.score[turn]+=1
-
-            if turn: turn=0  #turn change
-            else: turn=1
-
-        return self.score[1] #machine score return
 
     def organize_points(self, point_list):
         point_list.sort(key=lambda x: (x[0], x[1]))
