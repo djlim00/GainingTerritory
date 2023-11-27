@@ -1,3 +1,4 @@
+from cmath import inf
 from os import system
 import random
 from itertools import combinations,chain,product
@@ -25,11 +26,12 @@ class MACHINE():
         self.whole_points = []
         self.location = []
         self.triangles = [] # [(a, b), (c, d), (e, f)]
+        self.best_move= []
 
     def find_best_selection(self):
-        self.max_move()
-        return 
-    
+        
+        return self.minmax_move(-100, 100, 2)[1]
+
     def check_availability(self, line):
         line_string = LineString(line)
 
@@ -62,83 +64,79 @@ class MACHINE():
         else:
             return False
     
-    def check_endgame(self,line_apnd_list):
-        '''remain_to_draw = [[point1, point2] for (point1, point2) in list(combinations(self.whole_points, 2)) if self.check_availability([point1, point2])]
+    def check_endgame(self):
+        remain_to_draw = [[point1, point2] for (point1, point2) in list(combinations(self.whole_points, 2)) if self.check_availability([point1, point2])]
         return False if remain_to_draw else True
-
-        available = [[point1, point2] for (point1, point2) in list(combinations(self.whole_points, 2)) if self.check_availability([point1, point2])] 
-
-
-        for next_move in available:   # 모든 가능한 라인에 대해
-            if next_move in line_apnd_list:
-                continue
-            else:
-                return False
-
-        return True'''
+     
 
 
 
-    def max_move(self):   # available = 연결가능한 모든 점 조합 리스트
-        available = [[point1, point2] for (point1, point2) in list(combinations(self.whole_points, 2)) if self.check_availability([point1, point2])] 
 
-        if self.check_endgame():
-            return ()
-                
+   
         
-        else:  # 종료가 아닐때
-            best_score=0
-            best_move=[]
+    def minmax_move(self, alpha, beta, depth):
+        turn = len(self.drawn_lines) % 2  # 0: my, 1: OPPONENT
 
-            #print("max_move\n",available)
+        if self.check_endgame() or depth == 0: 
+            return self.score[1]-self.score[0], None # return score, best_move
+         # available = 연결가능한 모든 점 조합 리스트
+        available = [[point1, point2] for (point1, point2) in list(combinations(self.whole_points, 2)) if self.check_availability([point1, point2])]
 
-            for next_move in available:   # 모든 가능한 라인에 대해
-                get_score=self.check_triangle(next_move)
-                if get_score>0:
-                    self.score[1]+=get_score
+        best_move = None # best_move = (x1, y1), (x2, y2)
+
+        if turn == 0:  # my turn
+            max_val = -inf
+            for next_move in available:
+                get_score = self.check_triangle(next_move)
+                if get_score > 0:
+                    self.score[1] += get_score
                 self.drawn_lines.append(next_move)
 
-                self.min_move() #min_move 호출
+                result, _ = self.minmax_move(alpha, beta, depth - 1) 
 
-                if get_score>0:   # 삼각형이 추가되었다면 pop
+                if get_score > 0:  # 삼각형이 추가되었다면 pop
                     self.triangles.pop()
-                    self.score[1]-=get_score
+                    self.score[1] -= get_score
                 self.drawn_lines.pop()
 
-            return ()
-        
-    def min_move(self):   # available = 연결가능한 모든 점 조합 리스트
-        available = [[point1, point2] for (point1, point2) in list(combinations(self.whole_points, 2)) if self.check_availability([point1, point2])] 
+                if result > max_val: # return 값 갱신
+                    max_val = result
+                    best_move = next_move
 
-        if self.check_endgame():
-            return ()
-                
-        
-        else:  # 종료가 아닐때
-            worst_score=999
-            worst_move=[]
+                alpha = max(alpha, max_val) # alpha 값 갱신
+                if beta <= alpha:
+                    break
 
-            #print("min_move\n",available)
-            
-            for next_move in available:   # 모든 가능한 라인에 대해
-                get_score=self.check_triangle(next_move)
-                if get_score>0:
-                    self.score[0]+=get_score
+            return max_val, best_move
+
+        else:  # opponent's turn (minimize) 동일
+            min_val = inf
+            for next_move in available:
+                get_score = self.check_triangle(next_move)
+                if get_score > 0:
+                    self.score[0] += get_score
                 self.drawn_lines.append(next_move)
 
-                self.max_move() #max_move 호출
+                result, _ = self.minmax_move(alpha, beta, depth - 1)
 
-                if get_score>0:   # 삼각형이 추가되었다면 pop
+                if get_score > 0:  # 삼각형이 추가되었다면 pop
                     self.triangles.pop()
-                    self.score[0]-=get_score
-
+                    self.score[0] -= get_score
                 self.drawn_lines.pop()
 
-            return ()
-        
+                if result < min_val:
+                    min_val = result
+                    best_move = next_move
+
+                beta = min(beta, min_val)
+                if beta <= alpha:
+                    break
+
+            return min_val, best_move
+
 
     def check_triangle(self, line):
-
+        tri_count=0
         point1 = line[0]
         point2 = line[1]
 
@@ -146,7 +144,7 @@ class MACHINE():
         point2_connected = []
 
         for l in self.drawn_lines:
-            if l==line: # 자기 자신 제외
+            if l == line:  # 자기 자신 제외
                 continue
             if point1 in l:
                 point1_connected.append(l)
@@ -168,7 +166,7 @@ class MACHINE():
                     if bool(Polygon(triangle).intersection(Point(point))):
                         empty = False
 
-                tri_count=0
+               
                 if empty:
                     self.triangles.append(triangle)
                     tri_count+=1
