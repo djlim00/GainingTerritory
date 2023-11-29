@@ -1,6 +1,4 @@
 from cmath import inf
-from os import system
-import random
 from itertools import combinations,chain,product
 from shapely.geometry import LineString, Point,Polygon
 
