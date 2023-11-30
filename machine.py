@@ -27,8 +27,74 @@ class MACHINE():
         self.best_move= []
 
     def find_best_selection(self):
-        
-        return self.minmax_move(-100, 100, 2)[1]
+        # First, try using the heuristic algorithm
+        best_selection = self.heuristic_algorithm(self.get_available_lines())
+
+        # If no independent lines are available, switch to minmax_move
+        if not best_selection:
+            print("민맥스")
+            best_selection = self.minmax_move(-100, 100, 2)[1]
+
+        print("휴리스틱")
+        return best_selection
+
+    def get_available_lines(self):
+        return [[point1, point2] for (point1, point2) in
+                list(combinations(self.whole_points, 2)) if self.check_availability([point1, point2])]
+
+    def heuristic_algorithm(self, available):
+        is_first_player = len(self.drawn_lines) % 2
+
+        if not available:
+            return None
+
+        if is_first_player == 0:
+            print("선공입니다.")
+        else:
+            print("후공입니다.")
+
+        # 선분 연결 가중치
+        connected_weights = {point: 0 for point in self.whole_points}
+        for line in self.drawn_lines:
+            for point in line:
+                connected_weights[point] += 1
+
+        # 휴리스틱 값 계산
+        heuristic_values = []
+        for line in available:
+            value = 0
+            for point in line:
+                value += connected_weights[point]
+
+            # 후공 특이사항: 이미 그어진 선분에 이어져서 직선을 이룰 수 있는 선분 선호
+            if not is_first_player:
+                for drawn_line in self.drawn_lines:
+                    if line[0] in drawn_line or line[1] in drawn_line:
+                        value += 3  # 가중치를 크게 더함
+
+            # 독립된 선분 가중치 추가
+            independent_line_weight = 2  # 독립된 선분 가중치
+            drawn_points = [point for drawn_line in self.drawn_lines for point in drawn_line]
+            if line[0] not in drawn_points and line[1] not in drawn_points:
+                value += independent_line_weight
+
+            # 즉시 삼각형 생성 가능 여부 확인
+            if self.check_triangle(line) > 0:
+                value += 5  # 큰 가중치 부여
+
+            heuristic_values.append((line, value))
+
+        # 선분들의 휴리스틱 가중치 출력
+        for line, value in heuristic_values:
+            print(f"선분 {line}의 휴리스틱 가중치: {value}")
+
+        # 휴리스틱 값에 따라 정렬
+        heuristic_values.sort(key=lambda x: x[1], reverse=True)
+
+        # 최상의 선분 반환
+        return heuristic_values[0][0]
+
+
 
     def check_availability(self, line):
         line_string = LineString(line)
@@ -67,10 +133,6 @@ class MACHINE():
         return False if remain_to_draw else True
      
 
-
-
-
-   
         
     def minmax_move(self, alpha, beta, depth):
         turn = len(self.drawn_lines) % 2  # 0: my, 1: OPPONENT
