@@ -357,9 +357,13 @@ class SYSTEM():
             if point2 in l:
                 point2_connected.append(l)
 
+        print("**************")
+        print(line)
+        print(point1_connected)
+        print(point2_connected)
         if point1_connected and point2_connected: # 최소한 2점 모두 다른 선분과 연결되어 있어야 함
             for line1, line2 in product(point1_connected, point2_connected):
-                
+                print(line1,line2)
                 # Check if it is a triangle & Skip the triangle has occupied
                 triangle = self.organize_points(list(set(chain(*[line, line1, line2]))))
                 if len(triangle) != 3 or triangle in self.triangles:
@@ -371,12 +375,12 @@ class SYSTEM():
                         continue
                     if bool(Polygon(triangle).intersection(Point(point))):
                         empty = False
-
                 if empty:
                     self.triangles.append(triangle)
                     self.score[PLAYERS.index(self.turn)]+=1
 
                     color = USER_COLOR if self.turn=="USER" else MACHINE_COLOR
+                    print(color)
                     self.occupy_triangle(triangle, color=color)
                     self.get_score = True
                 
