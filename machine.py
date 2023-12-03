@@ -79,9 +79,11 @@ class MACHINE():
                 value += independent_line_weight
 
             # 즉시 삼각형 생성 가능 여부 확인
-            if self.check_triangle(line) > 0:
+            t=self.check_triangle(line)
+            if  t > 0:
+                for i in range(t):
+                    self.triangles.pop()
                 value += 5  # 큰 가중치 부여
-
             heuristic_values.append((line, value))
 
         # 선분들의 휴리스틱 가중치 출력
