@@ -157,7 +157,8 @@ class MACHINE():
                 result, _ = self.minmax_move(alpha, beta, depth - 1) 
 
                 if get_score > 0:  # 삼각형이 추가되었다면 pop
-                    self.triangles.pop()
+                    for i in range (get_score):
+                        self.triangles.pop()
                     self.score[1] -= get_score
                 self.drawn_lines.pop()
 
@@ -182,7 +183,8 @@ class MACHINE():
                 result, _ = self.minmax_move(alpha, beta, depth - 1)
 
                 if get_score > 0:  # 삼각형이 추가되었다면 pop
-                    self.triangles.pop()
+                    for i in range (get_score):
+                        self.triangles.pop()
                     self.score[0] -= get_score
                 self.drawn_lines.pop()
 
